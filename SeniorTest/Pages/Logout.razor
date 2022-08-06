@@ -1,0 +1,16 @@
+@page "/logout"
+@using SeniotTest.Services
+@using SeniorTest.Services
+@inject IAuthentService authService
+@inject NavigationManager navigationManager
+
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await authService.Logout();
+        navigationManager.NavigateTo("/");
+    }
+
+}

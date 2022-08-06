@@ -1,0 +1,69 @@
+﻿@page "/filemanager-features"
+@using Syncfusion.Blazor.FileManager
+@using Blazored.LocalStorage
+@using System.Net.Http.Headers
+@inject ILocalStorageService LocalStorage
+@inject IConfiguration Config
+
+<h2>File Manager</h2>
+<br/>
+@inject IJSRuntime JsRuntime;
+<div id = "ControlRegion">
+<SfFileManager TValue="FileManagerDirectoryContent" ShowThumbnail="true" AllowDragAndDrop="true" AllowMultiSelection="true" >
+    <FileManagerAjaxSettings Url="@_fileOperations"
+                             UploadUrl="@_upload"
+                             DownloadUrl="@_download"
+                             GetImageUrl="@_getImage">
+    </FileManagerAjaxSettings>
+    <FileManagerEvents TValue="FileManagerDirectoryContent" OnSend="FileManagerBeforeSendEvent"></FileManagerEvents>
+</SfFileManager>
+</div>
+<br/>
+<div>
+  <h3>Selected Features:</h3>
+    <ul class="ulstyle">
+      <li class="list"> Thumbnail</li>
+      <li class="list"> Drag and Drop</li>
+      <li class="list"> Multiple Selection</li>
+      <li class="list"> Theme - Bootstrap v5</li>
+    </ul>
+</div>
+<br/>
+
+@code {
+    private async void FileManagerBeforeSendEvent(BeforeSendEventArgs obj)
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken") ?? null;
+        obj.HttpClientInstance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+    }
+
+    private string _remoteUrl;
+    private string _fileOperations;
+    private string _upload;
+    private string _download;
+    private string _getImage;
+
+    protected override Task OnInitializedAsync()
+    {
+        _remoteUrl = Config["BaseUrlApi"];
+        _fileOperations = $"{_remoteUrl}/api/FileManager/FileOperations";
+        _upload = $"{_remoteUrl}/api/FileManager/Upload";
+        _download = $"{_remoteUrl}/api/FileManager/Download";
+        _getImage = $"{_remoteUrl}/api/FileManager/GetImage";
+        return base.OnInitializedAsync();
+    }
+}
+
+<style>
+    .ulstyle {
+        margin: 0px;
+        padding-left: 20px;
+        display: inline-block;
+    }
+    .list {
+    float: left;
+    line-height: 20px;
+    margin: 10px;
+    min-width: 200px;
+    }
+</style>

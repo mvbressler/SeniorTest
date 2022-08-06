@@ -1,0 +1,6 @@
+﻿/.vs/
+/.idea/
+/**/obj/
+/**/bin/
+/**/node_modules/
+/**/properties/
