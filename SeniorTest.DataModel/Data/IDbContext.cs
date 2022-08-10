@@ -8,7 +8,6 @@ namespace SeniorTest.DataModel.Data;
 public interface IApplicationDbContext
 {
     public abstract DatabaseFacade  Database { get; }
-    //DbSet<UserFile> UserFiles { get; set; }
 
     public abstract EntityEntry<TEntity> Attach<TEntity>(TEntity entity) where TEntity : class;
     public abstract void AttachRange(params object[] entities);

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SeniorTest.Api.Factories;
+using SeniorTest.Core.Repositories.Base;
 using SeniorTest.DataModel.Data;
 
 namespace SeniorTest.Api.Repositories.Base;
@@ -82,13 +83,18 @@ public class Repository<T> : IRepository<T> where T : class
 
     public async Task<IList<T>> BulkCreateAsync(IList<T> newValue)
     {
+        _applicationDbContext = await _contextFactory.CreateDbContextAsync();
         var transaction = await _applicationDbContext.Database.BeginTransactionAsync();
         
         try
         {
-            _applicationDbContext = await _contextFactory.CreateDbContextAsync();
             _table = _applicationDbContext.Set<T>();
-            await _table.AddRangeAsync(newValue);
+            foreach (var item in newValue)
+            {
+                if (_applicationDbContext.Entry(item).State == EntityState.Detached)
+                    _applicationDbContext.Attach(item);
+                _applicationDbContext.Entry(item).State = EntityState.Added;
+            }     
             await _applicationDbContext.SaveChangesAsync();
             await transaction.CommitAsync();            
             return await _table.AsNoTracking().ToListAsync();
@@ -129,13 +135,17 @@ public class Repository<T> : IRepository<T> where T : class
     {
         try
         {
-            _applicationDbContext = await _contextFactory.CreateDbContextAsync();            
-            _applicationDbContext.AttachRange(newValue);
+            _applicationDbContext = await _contextFactory.CreateDbContextAsync();   
+            var transaction = await _applicationDbContext.Database.BeginTransactionAsync();
+            //_applicationDbContext.AttachRange(newValue);
             foreach (var item in newValue)
             {
+                if (_applicationDbContext.Entry(item).State == EntityState.Detached)
+                    _applicationDbContext.Attach(item);
                 _applicationDbContext.Entry(item).State = EntityState.Deleted;
             }            
-            await _applicationDbContext.SaveChangesAsync();
+            await _applicationDbContext.SaveChangesAsync(CancellationToken.None);
+            await transaction.CommitAsync();  
             return true;
         }
         catch (Exception)

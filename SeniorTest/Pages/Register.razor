@@ -1,6 +1,8 @@
 @page "/register"
 @using SeniotTest.Services
 @using Microsoft.AspNetCore.Components
+@using Newtonsoft.Json
+@using Refit
 @using SeniorTest.DataModel.Models
 @using SeniorTest.Services
 @inject IAuthentService authService
@@ -13,7 +15,7 @@
     <div class="alert alert-danger" role="alert">
         @foreach (var error in Errors)
         {
-            <p>error</p>
+            <p>@error</p>
         }
     </div>
 }
@@ -54,18 +56,33 @@
     private async Task HandleRegistration()
     {
         ShowErrors = false;
-
-        var result = await authService.Register(RegisterModel);
-
-        if (result.Successful)
+        RegisterResult result = null;
+        try
         {
-            navigationManager.NavigateTo("/login");
+            result = await authService.Register(RegisterModel);
+            if (result.Successful)
+            {
+                navigationManager.NavigateTo("/login");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            Errors = result.Errors;
+            
+            //var e = await ex.GetContentAsAsync<Dictionary<string, string>>();
+            //this.Errors = string.Join("; ", e.Values);
+            //this.Errors = e.Values;
+            //Errors = result.Errors;
+            if (ex is ApiException)
+            {
+                result = JsonConvert.DeserializeObject<RegisterResult>((ex as ApiException).Content);
+                this.Errors = result.Errors;
+
+            }
             ShowErrors = true;
         }
+
+        
+        
     }
 
 }

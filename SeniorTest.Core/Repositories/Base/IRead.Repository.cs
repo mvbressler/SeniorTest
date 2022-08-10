@@ -1,4 +1,4 @@
-﻿namespace SeniorTest.Api.Repositories.Base;
+﻿namespace SeniorTest.Core.Repositories.Base;
 
 public interface IReadRepository<T> where T : class
 {

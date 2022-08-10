@@ -4,7 +4,7 @@ using SeniorTest.DataModel.Models;
 
 namespace SeniorTest.Api.Controllers
 {
-    [Authorize(Roles = "User")]
+    [Authorize(policy: "IsUser")]
     [Route("api/[controller]")]
     public class SampleDataController : Controller
     {

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 //using SeniotTest.Data;
 using Syncfusion.Blazor;
@@ -13,6 +14,7 @@ using Newtonsoft.Json.Serialization;
 using SeniorTest.Api.Factories;
 using SeniorTest.Api.Repositories;
 using SeniorTest.Api.Utilities;
+using SeniorTest.Core.Repositories;
 using SeniorTest.Core.Utilities;
 using SeniorTest.DataModel.Data;
 using SeniorTest.Services;
@@ -27,26 +29,45 @@ builder.Services.AddRazorPages();
 builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ContractResolver = new DefaultContractResolver(); });
 builder.Services.AddServerSideBlazor();
 
+//---
+builder.Services.AddDbContext<IApplicationDbContext, ApplicationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),  
+        b => b.MigrationsAssembly("SeniorTest.DataModel"))
+);
+builder.Services
+    .AddDefaultIdentity<IdentityUser>()
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtIssuer"],
+            ValidAudience = builder.Configuration["JwtAudience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSecurityKey"]))
+        };
+    });
+//--
 builder.Services.AddAuthorizationCore();
 
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 
+//------
+builder.Services.AddScoped<ICustomDbContextFactory<IApplicationDbContext>, CustomDbContextFactory<IApplicationDbContext>>();
+builder.Services.AddScoped<IUserFileRepository, UserFileRepository>();
+//------
+
+
 builder.Services.AddScoped<IAuthentService, AuthentService>();
 
 builder.Services.AddBlazoredLocalStorage();
-
-// builder.Services.AddAuthentication(config =>
-// {
-//     config.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-//     config.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-// });
-//
-// builder.Services.AddAuthorizationCore(config =>
-// {
-//     config.AddPolicy(Policies.IsAdmin, Policies.IsAdminPolicy());
-//     config.AddPolicy(Policies.IsUser, Policies.IsUserPolicy());
-//     
-// });
 
 
 var app = builder.Build();
@@ -65,8 +86,12 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.UseCors();
-//app.UseAuthorization();
-//app.UseAuthentication();
+
+//--
+app.UseAuthentication();
+app.UseAuthorization();
+//--
+
 app.MapDefaultControllerRoute();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");

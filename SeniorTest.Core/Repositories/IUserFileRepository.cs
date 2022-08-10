@@ -1,7 +1,7 @@
-﻿using SeniorTest.Api.Repositories.Base;
+﻿using SeniorTest.Core.Repositories.Base;
 using SeniorTest.DataModel.Models;
 
-namespace SeniorTest.Api.Repositories;
+namespace SeniorTest.Core.Repositories;
 
 public interface IUserFileRepository: IRepository<UserFile>
 {
