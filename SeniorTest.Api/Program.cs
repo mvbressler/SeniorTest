@@ -13,25 +13,27 @@ using Newtonsoft.Json.Serialization;
 using SeniorTest.Api.Factories;
 using SeniorTest.Api.Repositories;
 using SeniorTest.Api.Utilities;
+using SeniorTest.Core.Repositories;
 using SeniorTest.Core.Utilities;
 using SeniorTest.DataModel.Data;
 using Syncfusion.Blazor;
 
-var MyAllowSpecificOrigins = "_MyAllowSubdomainPolicy";
+const string myAllowSpecificOrigins = "_MyAllowSubdomainPolicy";
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins,
+    options.AddPolicy(name: myAllowSpecificOrigins,
         policy =>
         {
             var originsList = builder.Configuration["CorsOrigins"].Split(",");
             policy.WithOrigins(originsList)
-                .WithHeaders()
-                .AllowAnyMethod()
-                .AllowCredentials();
+                //policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         });
 });
 
@@ -41,7 +43,7 @@ builder.Services.AddBlazoredLocalStorage(config =>
 
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSyncfusionBlazor(options => { options.IgnoreScriptIsolation = true; });
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<IApplicationDbContext, ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),  
         b => b.MigrationsAssembly("SeniorTest.DataModel"))
@@ -80,7 +82,6 @@ builder.Services
     .AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 
 builder.Services.AddScoped<ICustomDbContextFactory<IApplicationDbContext>, CustomDbContextFactory<IApplicationDbContext>>();
-//builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 builder.Services.AddScoped<IUserFileRepository, UserFileRepository>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -106,7 +107,8 @@ app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 
-app.UseCors("_MyAllowSubdomainPolicy");
+// app.UseCors("_MyAllowSubdomainPolicy");
+app.UseCors(myAllowSpecificOrigins);
 
 app.UseAuthentication();
 

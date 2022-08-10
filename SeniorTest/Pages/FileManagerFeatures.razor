@@ -15,7 +15,10 @@
                              DownloadUrl="@_download"
                              GetImageUrl="@_getImage">
     </FileManagerAjaxSettings>
-    <FileManagerEvents TValue="FileManagerDirectoryContent" OnSend="FileManagerBeforeSendEvent"></FileManagerEvents>
+    <FileManagerEvents TValue="FileManagerDirectoryContent" 
+                       OnSend="FileManagerBeforeSendEvent" 
+                       BeforeDownload="FileManagerBeforeDownloadEvent"
+                       BeforeImageLoad="FileManagerBeforeGetImageEvent"></FileManagerEvents>
 </SfFileManager>
 </div>
 <br/>
@@ -33,8 +36,24 @@
 @code {
     private async void FileManagerBeforeSendEvent(BeforeSendEventArgs obj)
     {
-        var token = await LocalStorage.GetItemAsync<string>("authToken") ?? null;
-        obj.HttpClientInstance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+        // if (!obj.HttpClientInstance.DefaultRequestHeaders.Contains("Access-Control-Allow-Origins"))
+        //      obj.HttpClientInstance.DefaultRequestHeaders.Add("Access-Control-Allow-Origins", new []{"https://localhost*"});
+        //  if (!obj.HttpClientInstance.DefaultRequestHeaders.Contains("Access-Control-Allow-Headers"))
+        //      // obj.HttpClientInstance.DefaultRequestHeaders.Add("Access-Control-Allow-Headers", new []{"*"});
+        //      obj.HttpClientInstance.DefaultRequestHeaders.Add("Access-Control-Allow-Headers", 
+        //          new []{"Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With, Origin,Accept,Access-Control-Request-Method, Access-Control-Request-Headers"});
+        //  if (!obj.HttpClientInstance.DefaultRequestHeaders.Contains("Access-Control-Allow-Methods"))
+        //      obj.HttpClientInstance.DefaultRequestHeaders.Add("Access-Control-Allow-Methods", new []{"*"});
+        if (!obj.HttpClientInstance.DefaultRequestHeaders.Contains("Authorization"))
+            obj.HttpClientInstance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", _token);
+        //
+        // switch (obj.Action)
+        // {
+        //     case "Upload":
+        //         obj.HttpClientInstance.DefaultRequestHeaders.Remove("Authorization");
+        //         //obj.HttpClientInstance.DefaultRequestHeaders.Remove("Access-Control-Allow-Origins");
+        //         break;
+        // }
     }
 
     private string _remoteUrl;
@@ -42,16 +61,40 @@
     private string _upload;
     private string _download;
     private string _getImage;
-
-    protected override Task OnInitializedAsync()
+    private string? _token;
+    
+    protected override async Task OnInitializedAsync()
     {
-        _remoteUrl = Config["BaseUrlApi"];
+        _remoteUrl = ""; //Config["BaseUrlApi"];
         _fileOperations = $"{_remoteUrl}/api/FileManager/FileOperations";
-        _upload = $"{_remoteUrl}/api/FileManager/Upload";
+        _upload =   $"{_remoteUrl}/api/FileManager/Upload";
         _download = $"{_remoteUrl}/api/FileManager/Download";
         _getImage = $"{_remoteUrl}/api/FileManager/GetImage";
-        return base.OnInitializedAsync();
+        
+        _token = await LocalStorage.GetItemAsync<string>("authToken") ?? null;
+        await base.OnInitializedAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void FileManagerBeforeDownloadEvent(BeforeDownloadEventArgs<FileManagerDirectoryContent> obj)
+    {
+     
+    
+    //throw new NotImplementedException();
+        // if (!obj.HttpClientInstance.DefaultRequestHeaders.Contains("Authorization"))
+            // obj.HttpClientInstance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", _token);
+    }
+
+    private void FileManagerBeforeGetImageEvent(BeforeImageLoadEventArgs<FileManagerDirectoryContent> obj)
+    {
+        // throw new NotImplementedException();
+        // obj.
+    }
+
 }
 
 <style>

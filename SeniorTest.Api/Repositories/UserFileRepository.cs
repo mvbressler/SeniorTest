@@ -1,5 +1,6 @@
 ﻿using SeniorTest.Api.Factories;
 using SeniorTest.Api.Repositories.Base;
+using SeniorTest.Core.Repositories;
 using SeniorTest.DataModel.Data;
 using SeniorTest.DataModel.Models;
 
