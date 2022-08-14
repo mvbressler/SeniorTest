@@ -46,7 +46,9 @@ builder.Services.AddSyncfusionBlazor(options => { options.IgnoreScriptIsolation 
 builder.Services.AddDbContext<IApplicationDbContext, ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),  
-        b => b.MigrationsAssembly("SeniorTest.DataModel"))
+        b => b.MigrationsAssembly("SeniorTest.DataModel")),
+    ServiceLifetime.Transient,
+    ServiceLifetime.Transient
 );
 
 builder.Services
@@ -81,7 +83,7 @@ builder.Services.AddAuthorization(config =>
 builder.Services
     .AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 
-builder.Services.AddScoped<ICustomDbContextFactory<IApplicationDbContext>, CustomDbContextFactory<IApplicationDbContext>>();
+builder.Services.AddTransient<ICustomDbContextFactory<IApplicationDbContext>, CustomDbContextFactory<IApplicationDbContext>>();
 builder.Services.AddScoped<IUserFileRepository, UserFileRepository>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -96,6 +98,13 @@ builder.Services.AddResponseCompression(opts =>
 
 
 var app = builder.Build();
+//Applying Migrations as runtime
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<IApplicationDbContext>();    
+    context.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

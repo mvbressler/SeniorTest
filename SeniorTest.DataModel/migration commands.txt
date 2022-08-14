@@ -1,2 +1,2 @@
-﻿dotnet ef migrations add CreateUserFilesTable  --startup-project ..\SeniorText.Api\SeniorText.Api.csproj --output-dir .\Data\Migrations\
-dotnet ef database update  --startup-project ..\SeniorText.Api\SeniorText.Api.csproj
+﻿dotnet ef migrations add CreateUserFilesTable  --startup-project ..\SeniorTest.Api\SeniorTest.Api.csproj --output-dir .\Data\Migrations\
+dotnet ef database update  --startup-project ..\SeniorTest.Api\SeniorTest.Api.csproj

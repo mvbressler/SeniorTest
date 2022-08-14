@@ -5,4 +5,5 @@ namespace SeniorTest.Core.Repositories;
 
 public interface IUserFileRepository: IRepository<UserFile>
 {
+    public Task<UserFile> UpdateZippedFile(UserFile userFile, string newFilename);
 }

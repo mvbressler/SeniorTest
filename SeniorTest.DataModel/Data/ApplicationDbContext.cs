@@ -18,7 +18,16 @@ public class ApplicationDbContext : IdentityDbContext, IApplicationDbContext
         builder.Entity<IdentityRole>().HasData(new IdentityRole { Name = "User", NormalizedName = "USER", Id = Guid.NewGuid().ToString(), ConcurrencyStamp = Guid.NewGuid().ToString() });
         builder.Entity<IdentityRole>().HasData(new IdentityRole { Name = "Admin", NormalizedName = "ADMIN", Id = Guid.NewGuid().ToString(), ConcurrencyStamp = Guid.NewGuid().ToString() });
 
-        builder.Entity<UserFile>().HasKey(x => new { x.UserId, x.Path, x.Filename });
+        builder.Entity<UserFile>()
+            .HasKey(x => new { x.UserId, x.Path, x.Filename });
+        
+        builder.Entity<UserFile>()
+            .Property<byte[]>(p => p.ConcurrencyCheck)
+            .IsRowVersion()
+            .IsConcurrencyToken()
+            .ValueGeneratedOnAddOrUpdate()
+            .HasColumnType("rowversion");
+
     }
 
     public DbSet<UserFile> UserFiles { get; set; }

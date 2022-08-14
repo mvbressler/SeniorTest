@@ -33,7 +33,9 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContext<IApplicationDbContext, ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),  
-        b => b.MigrationsAssembly("SeniorTest.DataModel"))
+        b => b.MigrationsAssembly("SeniorTest.DataModel")),
+    ServiceLifetime.Transient,
+    ServiceLifetime.Transient
 );
 builder.Services
     .AddDefaultIdentity<IdentityUser>()

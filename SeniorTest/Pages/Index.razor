@@ -1,22 +1,37 @@
 ﻿@page "/"
 
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Components.NavigationManager UriHelper
+
 <PageTitle>Index</PageTitle>
 <span class="pageheader">Selected Controls</span>
 <br />
 <p class="pagecontent">The following Syncfusion Blazor components can be set up in an application for you with the Syncfusion Blazor Template Studio. A fast, easy start with Syncfusion Blazor components lets you concentrate on the important part: learning.</p>
 <div class="controlregion">
 
- <h5 class="productheader"> Navigation</h5>
-<ul class="ulstyle">
-	<li class="list">
- 	<NavLink class="nav-link" href="filemanager-features">
- 	<span class="syncfusion-blazor-index-icons syncfusion-blazor-icon-filemanager" aria-hidden="true"></span>File Manager
- 	</NavLink>
- 	</li>
+    <h5 class="productheader"> Navigation</h5>
+    <ul class="ulstyle">
+        <li class="list">
+            <NavLink class="nav-link" href="filemanager-features">
+                <span class="syncfusion-blazor-index-icons syncfusion-blazor-icon-filemanager" aria-hidden="true"></span>File Manager
+            </NavLink>
+        </li>
 
-</ul>
+    </ul>
 
 </div>
+
+@code
+{
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity is not {IsAuthenticated: true })
+            UriHelper.NavigateTo("/login");
+        await base.OnInitializedAsync();
+    }
+}
 <style>
     .ulstyle {
         margin-top: 10px;

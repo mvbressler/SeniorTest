@@ -17,7 +17,7 @@ namespace SeniorTest.DataModel.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.7")
+                .HasAnnotation("ProductVersion", "6.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
@@ -51,15 +51,15 @@ namespace SeniorTest.DataModel.Data.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "5e045d30-7170-44df-b15d-2db220a28206",
-                            ConcurrencyStamp = "c52288e0-a6c9-45be-ad06-f10311614484",
+                            Id = "ab920ea9-7df0-4846-903a-42ed6faf5e0b",
+                            ConcurrencyStamp = "7bd972c1-a2e2-45fc-8f6f-d79757219ae3",
                             Name = "User",
                             NormalizedName = "USER"
                         },
                         new
                         {
-                            Id = "3bd84a27-c993-4f2b-9596-442912fcb471",
-                            ConcurrencyStamp = "a6ab3f40-1d83-4763-99e1-1b9f34e01b94",
+                            Id = "7159208e-760f-4a55-b0b9-232350dc4ddd",
+                            ConcurrencyStamp = "c5338927-7be3-4e58-a306-5419592e5788",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         });
@@ -240,6 +240,31 @@ namespace SeniorTest.DataModel.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("SeniorTest.DataModel.Models.UserFile", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Path")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Filename")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte[]>("ConcurrencyCheck")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<bool>("IsZipped")
+                        .HasColumnType("bit");
+
+                    b.HasKey("UserId", "Path", "Filename");
+
+                    b.ToTable("UserFiles");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -289,6 +314,17 @@ namespace SeniorTest.DataModel.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SeniorTest.DataModel.Models.UserFile", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }
