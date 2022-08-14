@@ -9,9 +9,9 @@
 
     <ItemGroup>
       <PackageReference Include="Blazored.LocalStorage" Version="4.2.0" />
-      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.7" />
-      <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.7" />
-      <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="6.0.7" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.8" />
+      <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.8" />
+      <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="6.0.8" />
       <PackageReference Include="Syncfusion.Blazor.FileManager.PhysicalFileProvider" Version="20.2.0.36" />
     </ItemGroup>
 
