@@ -8,13 +8,11 @@ namespace SeniorTest.Api.Repositories.Base;
  * Due to blazor nature, it is necessary to  create in every method the IApplicationDbContext and not 
  * in the constructor.
  */
-public class Repository<T> : IRepository<T> where T : class
+public class Repository<T> : IDisposable, IRepository<T> where T : class
 {
-    private const bool V = true;
-    private IApplicationDbContext  _applicationDbContext;
-    private readonly ICustomDbContextFactory<IApplicationDbContext> _contextFactory;
+    protected readonly ICustomDbContextFactory<IApplicationDbContext> _contextFactory;
     private bool disposed = false;
-    private DbSet<T> _table = null;
+    
 
     public Repository(ICustomDbContextFactory<IApplicationDbContext> contextFactory)
     {
@@ -29,155 +27,314 @@ public class Repository<T> : IRepository<T> where T : class
 
     public T GetById(object id)
     {
-        _applicationDbContext = _contextFactory.CreateDbContext();
-        _table = _applicationDbContext.Set<T>();
-        return _table.Find(id);
+        using var _applicationDbContext = _contextFactory.CreateDbContext();
+        try
+        {
+            var _table = _applicationDbContext.Set<T>();
+            return _table.Find(id);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            _applicationDbContext.Database.CloseConnection();
+        }
+        
     }
 
     public async Task<T?> GetByIdAsync(object id)
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();
-        _table = _applicationDbContext.Set<T>();
-        return await _table.FindAsync(id);
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        try
+        {
+            var _table = applicationDbContext.Set<T>();
+            return await _table.FindAsync(id);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await applicationDbContext.Database.CloseConnectionAsync();
+        }
+        
     }
     
     public IEnumerable<T> GetAll()
     {
-        _applicationDbContext = _contextFactory.CreateDbContext();
-        _table = _applicationDbContext.Set<T>();
-        return _table.AsNoTracking().ToList();
+        using var _applicationDbContext = _contextFactory.CreateDbContext();
+        try
+        {
+            var _table = _applicationDbContext.Set<T>();
+            return _table.AsNoTracking().ToList();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            _applicationDbContext.Database.CloseConnection();
+        }
+        
     }
 
     public async Task<List<T>> GetAllAsync()
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();
-        _table = _applicationDbContext.Set<T>();
-        return await _table.AsNoTracking().ToListAsync();
+        await using var  applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        try
+        {
+            var _table = applicationDbContext.Set<T>();
+            return await _table.AsNoTracking().ToListAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await applicationDbContext.Database.CloseConnectionAsync();
+        }
     }
 
-    public IQueryable<T> GetAllAsQueryable() {
-        _applicationDbContext = _contextFactory.CreateDbContext();
-        _table = _applicationDbContext.Set<T>();
-        return _table.AsNoTracking().AsQueryable();
+    public IQueryable<T> GetAsQueryable() {
+        var applicationDbContext = _contextFactory.CreateDbContext();
+        try
+        {
+            var table = applicationDbContext?.Set<T>();
+            return table.AsNoTracking().AsQueryable();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
     }
+
+    public virtual Task<bool> ExistsAsync(T obj)
+    {
+        throw new NotImplementedException();
+    }
+
+    public T? Find(object[] keyValues)
+    {
+        throw new NotImplementedException();
+    }
+    
+    public Task<T?> FindAsync(object[] keyValues)
+    {
+        throw new NotImplementedException();
+    }
+
 
     public T Create(T newValue)
     {
-        _applicationDbContext = _contextFactory.CreateDbContext();
-        _table = _applicationDbContext.Set<T>();
-        _table.Add(newValue);
-        _applicationDbContext.SaveChanges();
-        _applicationDbContext.Entry(newValue).Reload();
+         using var applicationDbContext =  _contextFactory.CreateDbContext();
+         try
+         {
+            var table = applicationDbContext?.Set<T>();
+            table?.Add(newValue);
+            applicationDbContext?.SaveChanges();
+            applicationDbContext?.Entry(newValue).Reload();
         return newValue;
+         }
+         catch (Exception e)
+         {
+             Console.WriteLine(e);
+             throw;
+         }
+         finally
+         {
+             applicationDbContext.Database.CloseConnection();
+         }
     }
     
     public async Task<T> CreateAsync(T newValue)
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();
-        _table = _applicationDbContext.Set<T>();
-        await _table.AddAsync(newValue);
-        await _applicationDbContext.SaveChangesAsync();
-        await _applicationDbContext.Entry(newValue).ReloadAsync();
-        return newValue;
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        try
+        {
+            if (applicationDbContext.Entry(newValue).State == EntityState.Detached)
+                applicationDbContext.Attach(newValue);
+            applicationDbContext.Entry(newValue).State = EntityState.Added;
+            await applicationDbContext.SaveChangesAsync();
+            await applicationDbContext.Entry(newValue).ReloadAsync();
+            return newValue;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await applicationDbContext.Database.CloseConnectionAsync();
+        }
+        
     }
 
     public async Task<IList<T>> BulkCreateAsync(IList<T> newValue)
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();
-        var transaction = await _applicationDbContext.Database.BeginTransactionAsync();
-        
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await applicationDbContext.Database.BeginTransactionAsync();
         try
         {
-            _table = _applicationDbContext.Set<T>();
+            var table = applicationDbContext.Set<T>();
             foreach (var item in newValue)
             {
-                if (_applicationDbContext.Entry(item).State == EntityState.Detached)
-                    _applicationDbContext.Attach(item);
-                _applicationDbContext.Entry(item).State = EntityState.Added;
+                if (await ExistsAsync(item)) continue;
+                if (applicationDbContext.Entry(item).State == EntityState.Detached)
+                    applicationDbContext.Attach(item);
+                applicationDbContext.Entry(item).State = EntityState.Added;
             }     
-            await _applicationDbContext.SaveChangesAsync();
+            await applicationDbContext.SaveChangesAsync();
             await transaction.CommitAsync();            
-            return await _table.AsNoTracking().ToListAsync();
+            return await table.AsNoTracking().ToListAsync();
         }
         catch (Exception)
         {
             await transaction.RollbackAsync();
             return new List<T>();
         }
+        finally
+        {
+            await applicationDbContext.Database.CloseConnectionAsync();
+        }
     }
 
     public async Task<T> ModifyAsync(T newValue)
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();        
-        _applicationDbContext.Attach(newValue);        
-        _applicationDbContext.Entry(newValue).State = EntityState.Modified;
-        await _applicationDbContext.SaveChangesAsync();
-        return newValue;
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        try
+        {
+            applicationDbContext.Attach(newValue);        
+            applicationDbContext.Entry(newValue).State = EntityState.Modified;
+            await applicationDbContext.SaveChangesAsync();
+            return newValue;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await applicationDbContext.Database.CloseConnectionAsync();
+        }
+        
     }
 
     public async Task<T> RemoveAsync(T newValue)
     {
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
         try
         {
-            _applicationDbContext = await _contextFactory.CreateDbContextAsync();            
-            _applicationDbContext.Attach(newValue);
-            _applicationDbContext.Entry(newValue).State = EntityState.Deleted;
-            await _applicationDbContext.SaveChangesAsync();
+            applicationDbContext.Attach(newValue);
+            applicationDbContext.Entry(newValue).State = EntityState.Deleted;
+            await applicationDbContext.SaveChangesAsync();
             return null ;
         }
         catch (Exception)
         {
             return null;
-        }        
+        } 
+        finally
+        {
+            await applicationDbContext.Database.CloseConnectionAsync();
+        }
     }
 
     public async Task<bool> BulkRemoveAsync(IList<T> newValue)
     {
+        await using var _applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await _applicationDbContext.Database.BeginTransactionAsync();
         try
         {
-            _applicationDbContext = await _contextFactory.CreateDbContextAsync();   
-            var transaction = await _applicationDbContext.Database.BeginTransactionAsync();
+
             //_applicationDbContext.AttachRange(newValue);
             foreach (var item in newValue)
             {
                 if (_applicationDbContext.Entry(item).State == EntityState.Detached)
                     _applicationDbContext.Attach(item);
                 _applicationDbContext.Entry(item).State = EntityState.Deleted;
-            }            
+            }
+
             await _applicationDbContext.SaveChangesAsync(CancellationToken.None);
-            await transaction.CommitAsync();  
+            await transaction.CommitAsync();
             return true;
         }
         catch (Exception)
         {
             return false;
         }
+        finally
+        {
+            //transaction.Dispose();
+            await _applicationDbContext.Database.CloseConnectionAsync();
+        }
     }
 
     public T SaveOrInsert(T entity)
     {
-        throw new NotImplementedException(); 
+        using var applicationDbContext = _contextFactory.CreateDbContext();
+        try
+        {
+            applicationDbContext?.Attach(entity);
+            applicationDbContext?.SaveChanges();
+            applicationDbContext.Entry(entity).Reload();
+
+            return entity;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            applicationDbContext?.Database.CloseConnection();
+        }
     }
 
     public async Task<T> SaveOrInsertAsync(T entity)
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();        
-        _applicationDbContext.Attach(entity);
-        await _applicationDbContext.SaveChangesAsync();
-        await _applicationDbContext.Entry(entity).ReloadAsync();
-        return entity;
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        try
+        {
+            applicationDbContext?.Attach(entity);
+            await applicationDbContext?.SaveChangesAsync()!;
+            await applicationDbContext.Entry(entity).ReloadAsync();
+
+            return entity;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await applicationDbContext?.Database.CloseConnectionAsync()!;
+        }
     }
 
 
     public async Task<T?> DeleteAllAsync()
     {
-        _applicationDbContext = await _contextFactory.CreateDbContextAsync();
-        
-        var transaction = await _applicationDbContext.Database.BeginTransactionAsync();
+        await using var applicationDbContext = await _contextFactory.CreateDbContextAsync();
+        await using var transaction = await applicationDbContext.Database.BeginTransactionAsync();
         try
-        {           
-            
-            await _applicationDbContext.Database.ExecuteSqlRawAsync("delete from " + typeof(T).Name);
+        {
+
+            await applicationDbContext.Database.ExecuteSqlRawAsync("delete from " + typeof(T).Name);
             await transaction.CommitAsync();
             return (T)Activator.CreateInstance<T>();
         }
@@ -185,6 +342,10 @@ public class Repository<T> : IRepository<T> where T : class
         {
             await transaction.RollbackAsync();
             return null;
+        }
+        finally
+        {
+            await applicationDbContext?.Database.CloseConnectionAsync()!;
         }
         
     }
@@ -195,7 +356,7 @@ public class Repository<T> : IRepository<T> where T : class
         {
             if (disposing)
             {
-                _applicationDbContext.Dispose();
+                //_applicationDbContext.Dispose();
             }
         }
         this.disposed = true;
@@ -205,22 +366,5 @@ public class Repository<T> : IRepository<T> where T : class
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-}
-
-internal class NewClass
-{
-    public NewClass()
-    {
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is NewClass other;
-    }
-
-    public override int GetHashCode()
-    {
-        return 0;
     }
 }

@@ -6,5 +6,6 @@ public interface IReadRepository<T> where T : class
     public Task<T?> GetByIdAsync(object id);
     public IEnumerable<T> GetAll();    
     public Task<List<T>> GetAllAsync();
-    public IQueryable<T> GetAllAsQueryable();
+    public IQueryable<T> GetAsQueryable();
+    public Task<bool> ExistsAsync(T obj);
 }

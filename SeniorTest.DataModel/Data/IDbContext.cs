@@ -5,7 +5,7 @@ using SeniorTest.DataModel.Models;
 
 namespace SeniorTest.DataModel.Data;
 
-public interface IApplicationDbContext
+public interface IApplicationDbContext : IDisposable, IAsyncDisposable
 {
     public abstract DatabaseFacade  Database { get; }
 

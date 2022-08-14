@@ -1,5 +1,5 @@
-﻿using System.Web.Http;
-using Blazored.LocalStorage;
+﻿using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Authorization;
 //using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
@@ -10,7 +10,6 @@ using SeniorTest.Api.Repositories;
 using SeniorTest.DataModel.Models;
 using SfFileService.FileManager.Base;
 using SfFileService.FileManager.PhysicalFileProvider;
-using System.Web.Http.Cors;
 using Microsoft.EntityFrameworkCore;
 using SeniorTest.Api.Utilities;
 using SeniorTest.Core.Repositories;
@@ -19,7 +18,7 @@ using SeniorTest.Core.Utilities;
 namespace SeniorTest.Controllers
 {
     //[UpdateUserFileActionFilter]
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "User")]
+    [Authorize(Roles = "User")]
     //[EnableCors("AllowAllOrigins")]
     //[EnableCors("_MyAllowSubdomainPolicy")]
     //[EnableCors(origins: "https://localhost*", headers: "*", methods: "*", SupportsCredentials = true)]
@@ -33,7 +32,8 @@ namespace SeniorTest.Controllers
         private readonly IUserFileRepository _userFileRepository;
         private readonly SignInManager<IdentityUser> _signInManager;
         private IdentityUser _user;
-        private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(0, 1);
+        
+        
 
         public FileManagerController(IHostEnvironment hostingEnvironment, IUserFileRepository userFileRepository, 
             SignInManager<IdentityUser> signInManager)
@@ -99,7 +99,7 @@ namespace SeniorTest.Controllers
                     try
                     {
                         response = this.operation.Copy(args.Path, args.TargetPath, args.Names, args.RenameFiles, args.TargetData);
-                        await UpdateUserFiles.Copy(args.TargetPath, response.Files);
+                        await UpdateUserFiles.Copy(args.Path, args.TargetPath, response.Files);
                     }
                     catch (Exception e)
                     {
@@ -158,7 +158,18 @@ namespace SeniorTest.Controllers
                    Response.HttpContext.Features.Get<IHttpResponseFeature>().ReasonPhrase = uploadResponse.Error.Message;
                 }
 
-                await UpdateUserFiles.Upload(path, uploadFiles);
+               // await Task.Run(async () =>
+                //{
+                    
+                    await UpdateUserFiles.Upload(path, uploadFiles);
+                    //_semaphoreSlim.Release();
+                //});
+                
+                
+                
+                var a = "a";
+
+
             }
             catch (Exception e)
             {
@@ -172,7 +183,7 @@ namespace SeniorTest.Controllers
 
         // downloads the selected file(s) and folder(s)
         [AllowAnonymous]
-        [Microsoft.AspNetCore.Mvc.Route("Download")]
+        [Route("Download")]
         public async Task<IActionResult> Download(string downloadInput)
         {
             _user = await _signInManager.UserManager.FindByEmailAsync(User.Identity?.Name);
@@ -185,7 +196,7 @@ namespace SeniorTest.Controllers
 
         // gets the image(s) from the given path
         [AllowAnonymous]
-        [Microsoft.AspNetCore.Mvc.Route("GetImage")]
+        [Route("GetImage")]
         public IActionResult GetImage(FileManagerDirectoryContent args)
         {
             return this.operation.GetImage(args.Path, args.Id,false,null, null);

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
@@ -15,5 +16,7 @@ public class UserFile
     [DefaultValue(false)]
     public bool IsZipped { get; set; }
     public virtual IdentityUser User { get; set; }
+    [Timestamp]
+    public byte[] ConcurrencyCheck { get; set; }
 
 }

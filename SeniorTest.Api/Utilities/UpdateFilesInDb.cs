@@ -12,6 +12,7 @@ public static class UpdateUserFiles
 
     private static IUserFileRepository _userFileRepository;
     private static IdentityUser _user;
+    private static SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(0,1);
     
     public static void SetUserFilesRepository(IUserFileRepository userFileRepository, IdentityUser user)
     {
@@ -19,15 +20,25 @@ public static class UpdateUserFiles
         _user = user;
     }
     
-    private static List<UserFile> TransforFilesToUserFiles(string path, IEnumerable<FileManagerDirectoryContent> files)
+    private static async Task<IList<UserFile>> TransforFilesToUserFiles(IEnumerable<FileManagerDirectoryContent> files,
+        string path, string? targetPath = null)
     {
         var fileManagerDirectoryContents = files.ToList();
+        var existingUserFiles = new List<UserFile>(); 
+
+        if (!string.IsNullOrWhiteSpace(targetPath))
+        {
+            existingUserFiles = await _userFileRepository
+                .GetAsQueryable()
+                .Where(x => x.UserId == _user.Id && x.Path == path)
+                .ToListAsync();
+        } 
 
         return fileManagerDirectoryContents.Select(file => new UserFile
             {
                 Filename = file.Name,
-                IsZipped = false,
-                Path = path,
+                IsZipped = (existingUserFiles.Count > 0) && existingUserFiles.FirstOrDefault(x => x.UserId == _user.Id && x.Path == path && x.Filename == file.Name)!.IsZipped,
+                Path = (string.IsNullOrWhiteSpace(targetPath) ? path : targetPath),
                 User = _user,
                 UserId = _user.Id
             })
@@ -38,7 +49,7 @@ public static class UpdateUserFiles
         IEnumerable<FileManagerDirectoryContent> files)
     {
         var userFiles = await _userFileRepository
-            .GetAllAsQueryable()
+            .GetAsQueryable()
             .Where(x => (x.UserId == _user.Id && x.Path == path) ||
                         (x.Path == path && x.IsZipped == true))
             .ToListAsync();
@@ -52,33 +63,34 @@ public static class UpdateUserFiles
     public static async Task Delete(string path,
         IEnumerable<FileManagerDirectoryContent> files)
     {
-        await _userFileRepository.BulkRemoveAsync(TransforFilesToUserFiles(path, files));
+        await _userFileRepository.BulkRemoveAsync(await TransforFilesToUserFiles(files, path));
     }
 
     public static async void Rename(string path, string name, string newName)
     {
-        var userFile = await _userFileRepository.GetAllAsQueryable()
+        var userFile = await _userFileRepository.GetAsQueryable()
             .FirstOrDefaultAsync(f => f.Path == path && f.Filename == name);
         if (userFile == null) return;
         userFile.Filename = newName;
         await _userFileRepository.ModifyAsync(userFile);
     }
     
-    public static async Task Copy(string path,
+    public static async Task Copy(string path, string targetPath, 
         IEnumerable<FileManagerDirectoryContent> files)
     {
-        await _userFileRepository.BulkCreateAsync(TransforFilesToUserFiles(path, files));
+        await _userFileRepository.BulkCreateAsync(await TransforFilesToUserFiles(files, path, targetPath));
     }
     
     public static async Task Move(string path, string targetPath, 
         IEnumerable<FileManagerDirectoryContent> files)
     {
-        await _userFileRepository.BulkRemoveAsync(TransforFilesToUserFiles(path, files));
-        await _userFileRepository.BulkCreateAsync(TransforFilesToUserFiles(targetPath, files));
+        await _userFileRepository.BulkCreateAsync(await TransforFilesToUserFiles(files, path, targetPath));
+        await _userFileRepository.BulkRemoveAsync(await TransforFilesToUserFiles(files, path));
+        
     }
     
     public static async Task Upload(string path,
-        IList<IFormFile> uploadFiles)
+        IEnumerable<IFormFile> uploadFiles)
     {
         var list = uploadFiles.Select(x => new UserFile()
         {
@@ -89,7 +101,14 @@ public static class UpdateUserFiles
             UserId = _user.Id
         }).ToList();
 
-        await _userFileRepository.BulkCreateAsync(list);
+        if (list.Count > 1)
+        {
+            await _userFileRepository.BulkCreateAsync(list);    
+        }
+        else
+        {
+            await _userFileRepository.CreateAsync(list.FirstOrDefault());
+        }
     }
 
 }
